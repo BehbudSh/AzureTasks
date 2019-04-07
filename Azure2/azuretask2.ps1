@@ -1,99 +1,105 @@
-Import-AzureRmContext -Path D:\credintial.json
-#Resource group name and location for server
-$resourcegroupname = "BehbudRG-$(Get-Random)"
-$location = "Central US"
-#Storage and blob container
-$StorageName = "behbudstorage"
-$FirstContainerName = "blobcontainer1"
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$ResourceGroupName,
+    [Parameter(Mandatory = $true)]
+    [string]$Location,
+    [Parameter(Mandatory = $true)]
+    [string]$StorageAccountName,
+    [Parameter(Mandatory = $true)]
+    [string]$ContainerName,
+    [Parameter(Mandatory = $true)]
+    [string]$FirstServerName,
+    [Parameter(Mandatory = $true)]
+    [string]$SecondServerName,
+    [Parameter(Mandatory = $true)]
+    [string]$FirstDatabaseName,
+    [Parameter(Mandatory = $true)]
+    [string]$SecondDatabaseName,
+    [Parameter(Mandatory = $true)]
+    [string]$ThirdDatabaseName,
+    [Parameter(Mandatory = $true)]
+    [string]$DatabaseForSecondSqlName
+)
+$Credential1 = Get-Credential -Message "Write username and password for first SQL server"
+$Credential2 = Get-Credential -Message "Write username and password for second SQL server"
 $SkuName = "Standard_LRS"
-$StorageKeytype = "StorageAccessKey"
-# The logical server names
-$firstservername = "sqlserver1-$(Get-Random)"
-$secondservername = "sqlserver2-$(Get-Random)"
-# The database names
-$firstdatabasename = "FirstDatabase"
-$seconddatabasename = "SecondDatabase"
-$thirddatabasename = "ThirdDatabase"
-$databaseforsecondsqlname = "SecondSqlDatabase"
+$StorageKeyType = "StorageAccessKey"
 $StartIP = "0.0.0.0"
 $EndIP = "0.0.0.0"
 # Create a new resource group
-New-AzureRmResourceGroup -Name $resourcegroupname -Location $location
-#Storage account.
-New-AzureRmStorageAccount -ResourceGroupName $resourcegroupname -Name $StorageName -Location $location -SkuName $SkuName
-$StorageKey = (Get-AzureRmStorageAccountKey -ResourceGroupName $resourcegroupname -Name $StorageName).Value[0]
+New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location
+#Storage Account.
+New-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName -Name $StorageAccountName -Location $Location -SkuName $SkuName
+$StorageKey = (Get-AzureRmStorageAccountKey -ResourceGroupName $ResourceGroupName -Name $StorageAccountName).Value[0]
 #Storage Containers
-New-AzureRmStorageContainer -ResourceGroupName $resourcegroupname -StorageAccountName $StorageName -ContainerName $FirstContainerName
-$BacpacUri = (Get-AzureRmStorageAccount -ResourceGroupName $resourcegroupname -StorageAccountName $StorageName).Context.BlobEndPoint
-#Credintials for SQL servers
-$credential1 = Get-Credential
-$credential2 = Get-Credential
+New-AzureRmStorageContainer -ResourceGroupName $ResourceGroupName -StorageAccountName $StorageAccountName -ContainerName $ContainerName
+$BacpacUri = (Get-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName -StorageAccountName $StorageAccountName).Context.BlobEndPoint
 #First SQL server
-New-AzureRmSqlServer -ResourceGroupName $resourcegroupname -ServerName $firstservername -Location $location -SqlAdministratorCredentials $credential1
+New-AzureRmSqlServer -ResourceGroupName $ResourceGroupName -ServerName $FirstServerName -Location $Location -SqlAdministratorCredentials $Credential1
 #Second SQL server
-New-AzureRmSqlServer -ResourceGroupName $resourcegroupname -ServerName $secondservername -Location $location -SqlAdministratorCredentials $credential2
+New-AzureRmSqlServer -ResourceGroupName $ResourceGroupName -ServerName $SecondServerName -Location $Location -SqlAdministratorCredentials $Credential2
 #Databases for first SQL server
-New-AzureRmSqlDatabase  -ResourceGroupName $resourcegroupname `
-    -ServerName $firstservername `
-    -DatabaseName $firstdatabasename `
+New-AzureRmSqlDatabase  -ResourceGroupName $ResourceGroupName `
+    -ServerName $FirstServerName `
+    -DatabaseName $FirstDatabaseName `
     -RequestedServiceObjectiveName "S1"
-New-AzureRmSqlDatabase  -ResourceGroupName $resourcegroupname `
-    -ServerName $firstservername `
-    -DatabaseName $seconddatabasename `
+New-AzureRmSqlDatabase  -ResourceGroupName $ResourceGroupName `
+    -ServerName $FirstServerName `
+    -DatabaseName $SecondDatabaseName `
     -RequestedServiceObjectiveName "S1"
-New-AzureRmSqlDatabase  -ResourceGroupName $resourcegroupname `
-    -ServerName $firstservername `
-    -DatabaseName $thirddatabasename `
+New-AzureRmSqlDatabase  -ResourceGroupName $ResourceGroupName `
+    -ServerName $FirstServerName `
+    -DatabaseName $ThirdDatabaseName `
     -RequestedServiceObjectiveName "S1"
 #Database for second SQL server
-New-AzureRmSqlDatabase  -ResourceGroupName $resourcegroupname `
-    -ServerName $secondservername `
-    -DatabaseName $databaseforsecondsqlname `
+New-AzureRmSqlDatabase  -ResourceGroupName $ResourceGroupName `
+    -ServerName $SecondServerName `
+    -DatabaseName $DatabaseForSecondSqlName `
     -RequestedServiceObjectiveName "S1"
 #Firewall rule for First servers
-New-AzureRmSqlServerFirewallRule -ResourceGroupName $resourcegroupname -ServerName $firstservername -FirewallRuleName "Rule01" -StartIpAddress $StartIP -EndIpAddress $EndIP
+New-AzureRmSqlServerFirewallRule -ResourceGroupName $ResourceGroupName -ServerName $FirstServerName -FirewallRuleName "Rule01" -StartIpAddress $StartIP -EndIpAddress $EndIP
 #Export
-$exportRequest = New-AzureRmSqlDatabaseExport `
-    -ResourceGroupName $resourcegroupname `
-    -ServerName $firstservername `
-    -DatabaseName $firstdatabasename `
+$ExportRequest = New-AzureRmSqlDatabaseExport `
+    -ResourceGroupName $ResourceGroupName `
+    -ServerName $FirstServerName `
+    -DatabaseName $FirstDatabaseName `
     -StorageKeyType $StorageKeytype `
     -StorageKey $StorageKey `
-    -StorageUri $("$BacpacUri" + "$FirstContainerName/" + "$firstdatabasename.bacpac") `
-    -AdministratorLogin $credential1.UserName `
-    -AdministratorLoginPassword $credential1.Password
+    -StorageUri $("$BacpacUri" + "$ContainerName/" + "$FirstDatabaseName.bacpac") `
+    -AdministratorLogin $Credential1.UserName `
+    -AdministratorLoginPassword $Credential1.Password
 #ExportStatus
-$exportStatus = Get-AzureRmSqlDatabaseImportExportStatus -OperationStatusLink $exportRequest.OperationStatusLink
+$exportStatus = Get-AzureRmSqlDatabaseImportExportStatus -OperationStatusLink $ExportRequest.OperationStatusLink
 [Console]::Write("Exporting")
-while ($exportStatus.Status -eq "InProgress") {
+while ($ExportStatus.Status -eq "InProgress") {
     Start-Sleep -s 20
-    $exportStatus = Get-AzureRmSqlDatabaseImportExportStatus -OperationStatusLink $exportRequest.OperationStatusLink
+    $ExportStatus = Get-AzureRmSqlDatabaseImportExportStatus -OperationStatusLink $ExportRequest.OperationStatusLink
     [Console]::Write(".")
 }
 [Console]::WriteLine("")
-Echo "Export succeeded"
+Write-Output "Export succeeded"
 #Firewall rule for second server
-New-AzureRmSqlServerFirewallRule -ResourceGroupName $resourcegroupname -ServerName $secondservername -FirewallRuleName "Rule02" -StartIpAddress $StartIP -EndIpAddress $EndIP
+New-AzureRmSqlServerFirewallRule -ResourceGroupName $ResourceGroupName -ServerName $SecondServerName -FirewallRuleName "Rule02" -StartIpAddress $StartIP -EndIpAddress $EndIP
 #Import
-$importRequest = New-AzureRmSqlDatabaseImport `
-    -ResourceGroupName $resourcegroupname `
-    -ServerName $secondservername `
-    -DatabaseName $firstdatabasename `
+$ImportRequest = New-AzureRmSqlDatabaseImport `
+    -ResourceGroupName $ResourceGroupName `
+    -ServerName $SecondServerName `
+    -DatabaseName $FirstDatabaseName `
     -DatabaseMaxSizeBytes 5000000 `
-    -StorageKeyType "StorageAccessKey" `
+    -StorageKeyType $StorageKeyType `
     -StorageKey $StorageKey `
-    -StorageUri $("$BacpacUri" + "$FirstContainerName/" + "$firstdatabasename.bacpac") `
+    -StorageUri $("$BacpacUri" + "$ContainerName/" + "$FirstDatabaseName.bacpac") `
     -Edition "Standard" `
     -ServiceObjectiveName "S1" `
-    -AdministratorLogin $credential2.UserName `
-    -AdministratorLoginPassword $credential2.Password
+    -AdministratorLogin $Credential2.UserName `
+    -AdministratorLoginPassword $Credential2.Password
 #Import Status
-$importStatus = Get-AzureRmSqlDatabaseImportExportStatus -OperationStatusLink $importRequest.OperationStatusLink
+$importStatus = Get-AzureRmSqlDatabaseImportExportStatus -OperationStatusLink $ImportRequest.OperationStatusLink
 [Console]::Write("Importing")
-while ($importStatus.Status -eq "InProgress") {
-    $importStatus = Get-AzureRmSqlDatabaseImportExportStatus -OperationStatusLink $importRequest.OperationStatusLink
+while ($ImportStatus.Status -eq "InProgress") {
+    $ImportStatus = Get-AzureRmSqlDatabaseImportExportStatus -OperationStatusLink $ImportRequest.OperationStatusLink
     [Console]::Write(".")
     Start-Sleep -s 20
 }
 [Console]::WriteLine("")
-Echo "Import Succeeded"
+Write-Output "Import Succeeded"

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "availabilitysetName": {
+      "value": "myavailabilityset"
+    },
+    "vmstorageType": {
+      "value": "Standard_LRS"
+    },
+    "MasterVMName": {
+      "value": "MasterVM"
+    },
+    "MasterVMAdminUserName": {
+      "value": "Behbud"
+    },
+    "MasterVMAdminPassword": {
+      "value": "B123456b!"
+    },
+    "MasterVMWindowsOSVersion": {
+      "value": "2016-Datacenter"
+    },
+    "SlaveVMName": {
+      "value": "SlaveVM"
+    },
+    "SlaveVMAdminUserName": {
+      "value": "Behbud"
+    },
+    "SlaveVMAdminPassword": {
+      "value": "B123456b!"
+    },
+    "SlaveVMWindowsOSVersion": {
+      "value": "2016-Datacenter"
+    },
+    "dnsNameForNLB": {
+      "value": "networkloadbalancer"
+    }
+  }
+}

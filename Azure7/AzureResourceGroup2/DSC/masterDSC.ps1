@@ -4,10 +4,14 @@ Configuration Main
             [string] $SolrCmd )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DscResource -ModuleName xPSDesiredStateConfiguration
-    Import-DscResource -ModuleName xNetworking
-    Import-DscResource -ModuleName StorageDsc
-    Import-DscResource -ModuleName ComputerManagementDsc
+    # Import-DscResource -ModuleName xPSDesiredStateConfiguration
+    Find-Module xPSDesiredStateConfiguration | Install-Module
+    # Import-DscResource -ModuleName xNetworking
+    Find-Module xNetworking | Install-Module
+    # Import-DscResource -ModuleName StorageDsc
+    Find-Module StorageDsc | Install-Module
+    # Import-DscResource -ModuleName ComputerManagementDsc
+    Find-Module ComputerManagementDsc | Install-Module
 
     Node $nodeName {
         xFirewall Firewall {

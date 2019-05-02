@@ -44,7 +44,7 @@ if ($UploadArtifacts) {
     $ArtifactsLocationSasTokenName = '_artifactsLocationSasToken'
     $OptionalParameters[$ArtifactsLocationName] = $JsonParameters | Select -Expand $ArtifactsLocationName -ErrorAction Ignore | Select -Expand 'value' -ErrorAction Ignore
     $OptionalParameters[$ArtifactsLocationSasTokenName] = $JsonParameters | Select -Expand $ArtifactsLocationSasTokenName -ErrorAction Ignore | Select -Expand 'value' -ErrorAction Ignore
-
+    Login-AzureRmAccount
     # Create DSC configuration archive
     if (Test-Path $DSCSourceFolder) {
         $DSCSourceFilePaths = @(Get-ChildItem $DSCSourceFolder -File -Filter '*.ps1' | ForEach-Object -Process {$_.FullName})

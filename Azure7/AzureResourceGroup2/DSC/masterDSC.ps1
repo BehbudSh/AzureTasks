@@ -5,13 +5,13 @@ Configuration Main
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     # Import-DscResource -ModuleName xPSDesiredStateConfiguration
-    Find-Module xPSDesiredStateConfiguration | Install-Module
+    Find-Module xPSDesiredStateConfiguration | Install-Module -Force
     # Import-DscResource -ModuleName xNetworking
-    Find-Module xNetworking | Install-Module
+    Find-Module xNetworking | Install-Module -Force
     # Import-DscResource -ModuleName StorageDsc
-    Find-Module StorageDsc | Install-Module
+    Find-Module StorageDsc | Install-Module -Force
     # Import-DscResource -ModuleName ComputerManagementDsc
-    Find-Module ComputerManagementDsc | Install-Module
+    Find-Module ComputerManagementDsc | Install-Module -Force
 
     Node $nodeName {
         xFirewall Firewall {

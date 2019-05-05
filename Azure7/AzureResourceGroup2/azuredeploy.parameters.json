@@ -15,7 +15,7 @@
       "value": "Behbud"
     },
     "MasterVMAdminPassword": {
-      "value": "B123456b!"
+      "value": "#{adminpassword}#"
     },
     "MasterVMWindowsOSVersion": {
       "value": "2016-Datacenter"
@@ -27,7 +27,7 @@
       "value": "Behbud"
     },
     "SlaveVMAdminPassword": {
-      "value": "B123456b!"
+      "value": "#{adminpassword}#"
     },
     "SlaveVMWindowsOSVersion": {
       "value": "2016-Datacenter"

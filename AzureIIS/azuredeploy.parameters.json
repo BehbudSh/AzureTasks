@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "VMName": {
+      "value": "VM"
+    },
+    "VMAdminUserName": {
+      "value": "Behbud"
+    },
+    "VMAdminPassword": {
+      "value": "A123456a!"
+    },
+    "VMWindowsOSVersion": {
+      "value": "2016-Datacenter"
+    },
+    "vmpipDnsName": {
+      "value": "task6"
+    },
+    "certThumbprint": {
+      "value": "919C6D1D13EC6C5096E7744F90538DD75535931E"
+    },
+    "certUserName": {
+      "value": "Behbud"
+    },
+    "certPassword": {
+      "value": "YOUR_PFX_PASSWD"
+    }
+  }
+}

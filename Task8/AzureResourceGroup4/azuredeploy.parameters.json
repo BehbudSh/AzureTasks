@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "secondResourceGroup": {
+      "value": "VM2RG"
+    },
+    "VM1Name": {
+      "value": "VM1"
+    },
+    "VM2Name": {
+      "value": "VM2"
+    },
+    "VM1AdminUserName": {
+      "value": "Behbud"
+    },
+    "VM2AdminUserName": {
+      "value": "Behbud"
+    },
+    "VM1AdminPassword": {
+      "value": "B123456b!"
+    },
+    "VM2AdminPassword": {
+      "value": "B123456b!"
+    },
+    "VM1WindowsOSVersion": {
+      "value": "2016-Datacenter"
+    },
+    "VM2WindowsOSVersion": {
+      "value": "2016-Datacenter"
+    },
+    "vm1pipDnsName": {
+      "value": "vnetpeering01"
+    },
+    "vm2pipDnsName": {
+      "value": "vnetpeering02"
+    }
+  }
+}

@@ -9,7 +9,7 @@
       "value": "Standard_LRS"
     },
     "MasterVMName": {
-      "value": "MasterVM"
+      "value": "Master"
     },
     "MasterVMAdminUserName": {
       "value": "Behbud"
@@ -21,7 +21,7 @@
       "value": "2016-Datacenter"
     },
     "SlaveVMName": {
-      "value": "SlaveVM"
+      "value": "Slave"
     },
     "SlaveVMAdminUserName": {
       "value": "Behbud"

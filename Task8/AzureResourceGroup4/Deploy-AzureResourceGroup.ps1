@@ -2,8 +2,8 @@
 
 Param(
     [string] $ResourceGroupLocation = 'West Europe',
-    [string] $ResourceGroupName = 'VM1RG',
-    [string] $secondResourceGroup = 'VM2RG',
+    [string] $ResourceGroupName = 'VM1ResourceGroup',
+    [string] $secondResourceGroup = 'VM2ResourceGroup',
     [switch] $UploadArtifacts,
     [string] $StorageAccountName,
     [string] $StorageContainerName = $ResourceGroupName.ToLowerInvariant() + '-stageartifacts',

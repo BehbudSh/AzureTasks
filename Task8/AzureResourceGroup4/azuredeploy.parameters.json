@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "secondResourceGroup": {
-      "value": "VM2ResourceGroup"
+      "value": "VM2RG"
     },
     "VM1Name": {
       "value": "VM1"

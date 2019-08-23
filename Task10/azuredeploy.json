@@ -1,0 +1,802 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmstorageType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_ZRS",
+        "Standard_GRS",
+        "Standard_RAGRS",
+        "Premium_LRS"
+      ]
+    },
+    "vm1Name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vmAdminUserName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vmAdminPassword": {
+      "type": "securestring"
+    },
+    "WindowsOSVersion": {
+      "type": "string",
+      "defaultValue": "2016-Datacenter",
+      "allowedValues": [
+        "2008-R2-SP1",
+        "2012-Datacenter",
+        "2012-R2-Datacenter",
+        "Windows-Server-Technical-Preview",
+        "2016-Datacenter"
+      ]
+    },
+    "vm2Name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "networkSecurityGroupNAme": {
+      "type": "string"
+    },
+    "applicationGatewayName": {
+      "type": "string",
+      "defaultValue": "applicationGatewayv2",
+      "metadata": {
+        "description": "Application Gateway name"
+      }
+    },
+    "applicationGatewaySize": {
+      "type": "string",
+      "allowedValues": [
+        "WAF_v2",
+        "Standard_v2",
+        "WAF_Medium"
+      ],
+      "defaultValue": "WAF_Medium",
+      "metadata": {
+        "description": "Application gateway size"
+      }
+    },
+    "applicationGatewayTier": {
+      "type": "string",
+      "allowedValues": [
+        "WAF",
+        "Standard"
+      ],
+      "defaultValue": "WAF",
+      "metadata": {
+        "description": "Application gateway tier"
+      }
+    },
+    "capacity": {
+      "type": "int",
+      "allowedValues": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "defaultValue": 2,
+      "metadata": {
+        "description": "Number of instances"
+      }
+    },
+    "backendIpAddress1": {
+      "type": "string",
+      "defaultValue": "10.0.0.4",
+      "metadata": {
+        "description": "IP Address for backend server 1"
+      }
+    },
+    "backendIpAddress2": {
+      "type": "string",
+      "defaultValue": "10.0.0.5",
+      "metadata": {
+        "description": "IP Address for backend server 2"
+      }
+    },
+    "wafEnabled": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "WAF Enabled"
+      }
+    },
+    "wafMode": {
+      "type": "string",
+      "allowedValues": [
+        "Detection",
+        "Prevention"
+      ],
+      "defaultValue": "Prevention",
+      "metadata": {
+        "description": "WAF Mode"
+      }
+    },
+    "wafRuleSetType": {
+      "type": "string",
+      "allowedValues": [
+        "OWASP"
+      ],
+      "defaultValue": "OWASP",
+      "metadata": {
+        "description": "WAF Rule Set Type"
+      }
+    },
+    "wafRuleSetVersion": {
+      "type": "string",
+      "allowedValues": [
+        "2.2.9",
+        "3.0"
+      ],
+      "defaultValue": "3.0",
+      "metadata": {
+        "description": "WAF Rule Set Version"
+      }
+    },
+    "VMPublicIPDnsName": {
+      "type": "string",
+      "defaultValue": "appgatewaypip"
+    },
+    "thumbprint": {
+      "type": "string",
+      "metadata": {
+        "description": "thumprint of certificate"
+      }
+    },
+    "pfxcertpass": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Password for the PFX certificate."
+      }
+    },
+    "frontendCertData": {
+      "type": "string",
+      "metadata": {
+        "description": "Base-64 encoded form of the .pfx file. This is the cert terminating on the Application Gateway."
+      }
+    },
+    "frontendCertPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Password for .pfx certificate"
+      }
+    },
+    "backendPublicKeyData": {
+      "type": "string",
+      "metadata": {
+        "description": "Base-64 encoded form of the .cer file. This is the public key for the cert on the web servers."
+      }
+    },
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Auto-generated container in staging storage account to receive post-build staging folder upload"
+      }
+    },
+    "_artifactsLocationSasToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Auto-generated token to access _artifactsLocation"
+      }
+    }
+  },
+  "variables": {
+    "vm1storageName": "[concat('vm1storage', uniqueString(resourceGroup().id))]",
+    "vmvnetPrefix": "10.0.0.0/16",
+    "vmvnetSubnet1Name": "Subnet-1",
+    "vmvnetSubnet1Prefix": "10.0.0.0/24",
+    "vmImagePublisher": "MicrosoftWindowsServer",
+    "vmImageOffer": "WindowsServer",
+    "vm1OSDiskName": "vm1OSDisk",
+    "vmVmSize": "Standard_D2_v2",
+    "vmVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'vmvnet')]",
+    "vmSubnetRef": "[concat(variables('vmVnetID'), '/subnets/', variables('vmvnetSubnet1Name'))]",
+    "vmStorageAccountContainerName": "vhds",
+    "vm1NicName": "[concat(parameters('vm1Name'), 'NetworkInterface')]",
+    "vm2storageName": "[concat('vm2storage', uniqueString(resourceGroup().id))]",
+    "vm2OSDiskName": "vm2OSDisk",
+    "vm2NicName": "[concat(parameters('vm2Name'), 'NetworkInterface')]",
+    "vmdscArchiveFolder": "DSC",
+    "vm1dscArchiveFileName": "vm1dsc.zip",
+    "vm2dscArchiveFileName": "vm2dsc.zip",
+    "publicIPAddressName": "publicIp",
+    "agsubnetName": "appGatewaySubnet",
+    "agsubnetPrefix": "10.0.3.0/24",
+    "agsubnetRef": "[concat(variables('vmVnetID'), '/subnets/', variables('agsubnetName'))]",
+    "publicIPRef": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]",
+    "applicationGatewayID": "[resourceId('Microsoft.Network/applicationGateways',parameters('applicationGatewayName'))]",
+    "appGwNsgName": "appgwnsg"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2018-12-01",
+      "name": "[parameters('networkSecurityGroupNAme')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "NSG"
+      },
+      "properties": {
+        "SecurityRules": [
+          {
+            "name": "Allow80",
+            "properties": {
+              "description": "Allow port 80",
+              "sourceAddressPrefix": "VirtualNetwork",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "80",
+              "protocol": "Tcp",
+              "direction": "Inbound",
+              "priority": 200,
+              "access": "Allow"
+            }
+          },
+          {
+            "name": "Allow443",
+            "properties": {
+              "description": "Allow port 443",
+              "sourceAddressPrefix": "VirtualNetwork",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "443",
+              "protocol": "Tcp",
+              "direction": "Inbound",
+              "priority": 300,
+              "access": "Allow"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2016-03-30",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('appGwNsgName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "Allow80",
+            "properties": {
+              "description": "Allow 80 from Internet",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "80",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "Allow443",
+            "properties": {
+              "description": "Allow 443 from Internet",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "443",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 102,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "AllowAppGwProbes",
+            "properties": {
+              "description": "Allow ports for App Gw probes",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "65503-65534 ",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 103,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[variables('vm1storageName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-01-01",
+      "sku": {
+        "name": "[parameters('vmstorageType')]"
+      },
+      "dependsOn": [],
+      "tags": {
+        "displayName": "vm1storage"
+      },
+      "kind": "Storage"
+    },
+    {
+      "name": "vmvnet",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('appGwNsgName'))]"
+      ],
+      "tags": {
+        "displayName": "vmvnet"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('vmvnetPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('vmvnetSubnet1Name')]",
+            "properties": {
+              "addressPrefix": "[variables('vmvnetSubnet1Prefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups' ,parameters('networkSecurityGroupName'))]"
+              }
+            }
+          },
+          {
+            "name": "[variables('agsubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('agsubnetPrefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups' ,variables('appGwNsgName'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[variables('vm1NicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vmvnet')]"
+      ],
+      "tags": {
+        "displayName": "vm1Nic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "10.0.0.4",
+              "subnet": {
+                "id": "[variables('vmSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('vm1Name')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('vm1storageName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('vm1NicName'))]"
+      ],
+      "tags": {
+        "displayName": "vm1"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('vmVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('vm1Name')]",
+          "adminUsername": "[parameters('vmAdminUsername')]",
+          "adminPassword": "[parameters('vmAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('vmImagePublisher')]",
+            "offer": "[variables('vmImageOffer')]",
+            "sku": "[parameters('WindowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "vm1OSDisk",
+            "vhd": {
+              "uri": "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('vm1storageName')), '2016-01-01').primaryEndpoints.blob, variables('vmStorageAccountContainerName'), '/', variables('vm1OSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('vm1NicName'))]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "name": "Microsoft.Powershell.DSC",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2016-03-30",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', parameters('vm1Name'))]"
+          ],
+          "tags": {
+            "displayName": "vm1dsc"
+          },
+          "properties": {
+            "publisher": "Microsoft.Powershell",
+            "type": "DSC",
+            "typeHandlerVersion": "2.9",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "configuration": {
+                "url": "[concat(parameters('_artifactsLocation'), '/', variables('vmdscArchiveFolder'), '/', variables('vm1dscArchiveFileName'))]",
+                "script": "vm1dsc.ps1",
+                "function": "Main"
+              },
+              "configurationArguments": {
+                "nodeName": "[parameters('vm2Name')]",
+                "Certificate": "[concat(parameters('_artifactsLocation'), '/', 'Cert', '/', 'appgwcert.pfx', parameters('_artifactsLocationSasToken') )]",
+                "thumbprint": "[parameters('thumbprint')]"
+              }
+            },
+            "protectedSettings": {
+              "configurationUrlSasToken": "[parameters('_artifactsLocationSasToken')]",
+              "configurationArguments": {
+                "certcredential": {
+                  "Username": "[parameters('VMAdminUserName')]",
+                  "Password": "[parameters('pfxcertpass')]"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "[variables('vm2storageName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-01-01",
+      "sku": {
+        "name": "[parameters('vmstorageType')]"
+      },
+      "dependsOn": [],
+      "tags": {
+        "displayName": "vm2storage"
+      },
+      "kind": "Storage"
+    },
+    {
+      "name": "[variables('vm2NicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vmvnet')]"
+      ],
+      "tags": {
+        "displayName": "vm2Nic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "10.0.0.5",
+              "subnet": {
+                "id": "[variables('vmSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('vm2Name')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('vm2storageName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('vm2NicName'))]"
+      ],
+      "tags": {
+        "displayName": "vm2"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('vmVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('vm2Name')]",
+          "adminUsername": "[parameters('vmAdminUsername')]",
+          "adminPassword": "[parameters('vmAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('vmImagePublisher')]",
+            "offer": "[variables('vmImageOffer')]",
+            "sku": "[parameters('WindowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "vm2OSDisk",
+            "vhd": {
+              "uri": "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('vm2storageName')), '2016-01-01').primaryEndpoints.blob, variables('vmStorageAccountContainerName'), '/', variables('vm2OSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('vm2NicName'))]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "name": "Microsoft.Powershell.DSC",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2016-03-30",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', parameters('vm2Name'))]"
+          ],
+          "tags": {
+            "displayName": "vm2dsc"
+          },
+          "properties": {
+            "publisher": "Microsoft.Powershell",
+            "type": "DSC",
+            "typeHandlerVersion": "2.9",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "configuration": {
+                "url": "[concat(parameters('_artifactsLocation'), '/', variables('vmdscArchiveFolder'), '/', variables('vm2dscArchiveFileName'))]",
+                "script": "vm2dsc.ps1",
+                "function": "Main"
+              },
+              "configurationArguments": {
+                "nodeName": "[parameters('vm2Name')]",
+                "Certificate": "[concat(parameters('_artifactsLocation'), '/', 'Cert', '/', 'appgwcert.pfx', parameters('_artifactsLocationSasToken') )]",
+                "thumbprint": "[parameters('thumbprint')]"
+              }
+            },
+            "protectedSettings": {
+              "configurationUrlSasToken": "[parameters('_artifactsLocationSasToken')]",
+              "configurationArguments": {
+                "certcredential": {
+                  "Username": "[parameters('vmAdminUserName')]",
+                  "Password": "[parameters('pfxcertpass')]"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "apiVersion": "2019-04-01",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPAddressName')]",
+      "location": "[resourceGroup().location]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[parameters('VMPublicIPDnsName')]"
+        }
+      }
+    },
+    {
+      "apiVersion": "2019-04-01",
+      "name": "[parameters('applicationGatewayName')]",
+      "type": "Microsoft.Network/applicationGateways",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vmvnet')]",
+        "[variables('publicIPAddressName')]"
+      ],
+      "properties": {
+        "sku": {
+          "name": "[parameters('applicationGatewaySize')]",
+          "tier": "[parameters('applicationGatewayTier')]",
+          "capacity": "[parameters('capacity')]"
+        },
+        "sslCertificates": [
+          {
+            "name": "appGatewayFrontEndSslCert",
+            "properties": {
+              "data": "[parameters('frontendCertData')]",
+              "password": "[parameters('frontendCertPassword')]"
+            }
+          }
+        ],
+        "gatewayIPConfigurations": [
+          {
+            "name": "appGatewayIpConfig",
+            "properties": {
+              "subnet": {
+                "id": "[variables('agsubnetRef')]"
+              }
+            }
+          }
+        ],
+        "authenticationCertificates": [
+          {
+            "properties": {
+              "data": "[parameters('backendPublicKeyData')]"
+            },
+            "name": "appGatewayBackendCert"
+          }
+        ],
+        "frontendIPConfigurations": [
+          {
+            "name": "appGatewayFrontendIP",
+            "properties": {
+              "PublicIPAddress": {
+                "id": "[variables('publicIPRef')]"
+              }
+            }
+          }
+        ],
+        "frontendPorts": [
+          {
+            "name": "appGatewayFrontendPort80",
+            "properties": {
+              "Port": 80
+            }
+          },
+          {
+            "name": "appGatewayFrontendPort443",
+            "properties": {
+              "Port": 443
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "appGatewayBackendPool",
+            "properties": {
+              "BackendAddresses": [
+                {
+                  "IpAddress": "[parameters('backendIpAddress1')]"
+                },
+                {
+                  "IpAddress": "[parameters('backendIpAddress2')]"
+                }
+              ]
+            }
+          }
+        ],
+        "backendHttpSettingsCollection": [
+          {
+            "name": "appGatewayBackendHttpSettings",
+            "properties": {
+              "Port": 80,
+              "Protocol": "Http",
+              "CookieBasedAffinity": "enabled"
+            }
+          },
+          {
+            "name": "appGatewayBackendHttpsSettings",
+            "properties": {
+              "Port": 443,
+              "Protocol": "Https",
+              "CookieBasedAffinity": "enabled",
+              "AuthenticationCertificates": [
+                {
+                  "Id": "[concat(variables('applicationGatewayID'), '/authenticationCertificates/appGatewayBackendCert')]"
+                }
+              ]
+            }
+          }
+        ],
+        "httpListeners": [
+          {
+            "name": "appGatewayHttpListener",
+            "properties": {
+              "FrontendIPConfiguration": {
+                "Id": "[resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', parameters('applicationGatewayName'), 'appGatewayFrontendIP')]"
+              },
+              "FrontendPort": {
+                "Id": "[resourceId('Microsoft.Network/applicationGateways/frontendPorts', parameters('applicationGatewayName'), 'appGatewayFrontendPort80')]"
+              },
+              "Protocol": "Http",
+              "SslCertificate": null
+            }
+          },
+          {
+            "name": "appGatewayHttpsListener",
+            "properties": {
+              "FrontendIPConfiguration": {
+                "Id": "[concat(variables('applicationGatewayID'), '/frontendIPConfigurations/appGatewayFrontendIP')]"
+              },
+              "FrontendPort": {
+                "Id": "[concat(variables('applicationGatewayID'), '/frontendPorts/appGatewayFrontendPort443')]"
+              },
+              "Protocol": "Https",
+              "SslCertificate": {
+                "Id": "[concat(variables('applicationGatewayID'), '/sslCertificates/appGatewayFrontEndSslCert')]"
+              }
+            }
+          }
+        ],
+        "requestRoutingRules": [
+          {
+            "Name": "HTTPRule",
+            "properties": {
+              "RuleType": "Basic",
+              "httpListener": {
+                "id": "[resourceId('Microsoft.Network/applicationGateways/httpListeners', parameters('applicationGatewayName'), 'appGatewayHttpListener')]"
+              },
+              "backendAddressPool": {
+                "id": "[resourceId('Microsoft.Network/applicationGateways/backendAddressPools', parameters('applicationGatewayName'), 'appGatewayBackendPool')]"
+              },
+              "backendHttpSettings": {
+                "id": "[resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', parameters('applicationGatewayName'), 'appGatewayBackendHttpSettings')]"
+              }
+            }
+          },
+          {
+            "Name": "HTTPSRule",
+            "properties": {
+              "RuleType": "Basic",
+              "httpListener": {
+                "id": "[concat(variables('applicationGatewayID'), '/httpListeners/appGatewayHttpsListener')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(variables('applicationGatewayID'), '/backendAddressPools/appGatewayBackendPool')]"
+              },
+              "backendHttpSettings": {
+                "id": "[concat(variables('applicationGatewayID'), '/backendHttpSettingsCollection/appGatewayBackendHttpsSettings')]"
+              }
+            }
+          }
+        ],
+        "webApplicationFirewallConfiguration": {
+          "enabled": "[parameters('wafEnabled')]",
+          "firewallMode": "[parameters('wafMode')]",
+          "ruleSetType": "[parameters('wafRuleSetType')]",
+          "ruleSetVersion": "[parameters('wafRuleSetVersion')]",
+          "disabledRuleGroups": []
+        }
+      }
+    }
+  ],
+  "outputs": {}
+}

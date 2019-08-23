@@ -1,0 +1,66 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vm1Name": {
+      "value": "vm1"
+    },
+    "vm2Name": {
+      "value": "vm2"
+    },
+    "vmAdminUserName": {
+      "value": "Behbud"
+    },
+    "vmAdminPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/9f1d69d5-a8c4-43d6-a8fe-78743af3b499/resourceGroups/AzKeyVaultsRG/providers/Microsoft.KeyVault/vaults/Task10Keys"
+        },
+        "secretName": "vmAdminPassword"
+      }
+    },
+    "networkSecurityGroupNAme": {
+      "value": "vmnsg"
+    },
+    "thumbprint": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/9f1d69d5-a8c4-43d6-a8fe-78743af3b499/resourceGroups/AzKeyVaultsRG/providers/Microsoft.KeyVault/vaults/Task10Keys"
+        },
+        "secretName": "thumbprint"
+      }
+    },
+    "pfxcertpass": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/9f1d69d5-a8c4-43d6-a8fe-78743af3b499/resourceGroups/AzKeyVaultsRG/providers/Microsoft.KeyVault/vaults/Task10Keys"
+        },
+        "secretName": "pfxcertpass"
+      }
+    },
+    "frontendCertData": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/9f1d69d5-a8c4-43d6-a8fe-78743af3b499/resourceGroups/AzKeyVaultsRG/providers/Microsoft.KeyVault/vaults/Task10Keys"
+        },
+        "secretName": "frontendCertData"
+      }
+    },
+    "frontendCertPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/9f1d69d5-a8c4-43d6-a8fe-78743af3b499/resourceGroups/AzKeyVaultsRG/providers/Microsoft.KeyVault/vaults/Task10Keys"
+        },
+        "secretName": "frontendCertPassword"
+      }
+    },
+    "backendPublicKeyData": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/9f1d69d5-a8c4-43d6-a8fe-78743af3b499/resourceGroups/AzKeyVaultsRG/providers/Microsoft.KeyVault/vaults/Task10Keys"
+        },
+        "secretName": "backendPublicKeyDatatest"
+      }
+    }
+  }
+}
